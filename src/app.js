@@ -1,3 +1,4 @@
+// command for starting the test rpc - ganache-cli --fork http://localhost:8545 --port546
 // dependencies
 const _ = require('lodash');
 const rp = require('request-promise');
@@ -17,21 +18,25 @@ if (typeof web3 !== 'undefined') {
     web3 = new Web3(web3.currentProvider);
 } else {
     web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
+    //web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8546'));
 };
 
 // global variables
 const weiMultiplier = 1000000000000000000;
 const e = web3.eth;
-const defaultAccount = e.defaultAccount = e.accounts[1];
+const defaultAccount = e.defaultAccount = e.accounts[0];
 console.log(`default account: ${defaultAccount}`);
 let nonceCount = e.getTransactionCount(defaultAccount);
 console.log(`nonce for default account: ${nonceCount}`);
 let gasLimit = web3.toHex(100000);
-let gasPrice = web3.toHex(51000000000);
+let gasPrice = web3.toHex(4000000000);
 const contractAddress = '0x13f11C9905A08ca76e3e853bE63D4f0944326C72';
 const contract = web3.eth.contract(abi).at(contractAddress);
 const privateKey = new Buffer(keys.privateKey, 'hex');
 const testPrivateKey = new Buffer(keys.testPrivateKey, 'hex');
+
+
+let totalDiviNeeded = 0;
 
 // payment functions
 const bountyPay = () => {
@@ -61,6 +66,7 @@ const bountyPay = () => {
                 bountyArr.push(bountyObj)
                 console.log(`Claimant: ${bountyObj.address}`);
                 console.log(`Payout: ${bountyObj.payout}`);
+                totalDiviNeeded += payoutAmount
             }
             const sendDivx = () => {
                 let amountToSend;
@@ -90,10 +96,11 @@ const bountyPay = () => {
                     nonceCount++;
                     console.log(`nonce count: ${nonceCount}`);
                     const tx = new Tx(bountyTx);
-                    console.log(`new tx: ${tx}`)
-                    tx.sign(privateKey);
+                    console.log('bountyTx',bountyTx);
+                    console.log(`new tx: ${JSON.stringify(tx)}`);
                     console.log(`It's been signed!`)
-                    // tx.sign(testPrivateKey);
+                    tx.sign(privateKey);
+                    //tx.sign(testPrivateKey);
                     const serializedTx = tx.serialize();
                     console.log(`serialized tx: ${JSON.stringify(serializedTx)}`);
                     e.sendRawTransaction(`0x${serializedTx.toString('hex')}`, function(err, hash) {
@@ -103,6 +110,7 @@ const bountyPay = () => {
                                 j++;
                                 bountyDrop();
                             } else {
+                                console.log('totalDiviNeeded',totalDiviNeeded)
                                 console.log(`We're done here.`);
                             }
                         } else {
